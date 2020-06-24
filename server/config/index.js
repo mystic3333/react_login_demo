@@ -1,0 +1,5 @@
+const JWT_SECRET = 'MYSTIC_JWT_TOKEN_SHA256_ABCDEFG_123456_HELLO_WORLD!!!'
+
+module.exports = {
+    JWT_SECRET
+}

@@ -1,68 +1,162 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+### 项目初始化
 
-## Available Scripts
+1. 创建项目 
 
-In the project directory, you can run:
+    npx-create-app react_project
 
-### `yarn start`
+2. 安装相关依赖
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+    生产环境: redux, react-redux, redux-thunk
+    开发环境: redux-logger, redux-devtools-extension
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+3. nodemon自动更新代码
 
-### `yarn test`
+    全局安装: npm install nodemon -g
 
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+``` 
+const express = require('express')
+const app = express()
+const router = require('./router')
+const debug = require('debug')('my-application')
 
-### `yarn build`
+app.use('/api', router)
 
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
+app.listen(4000,function() {
+    debug('listening in port 4000')
+})
+```
 
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
+### 页面路由搭建
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+``` 
+import React from 'react'
+import {Link} from 'react-router-dom'
+import './index.css'
 
-### `yarn eject`
+export default class Nav extends React.Component {
+    render() {
+        return (
+            <div className="nav_container">
+                <div className="login">
+                    <Link to="/signin">registry</Link>
+                </div>
+                <div className="registry">
+                    <Link to="/signup">login</Link>
+                </div>
+            </div>
+        )
+    }
+}
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+### localStorage
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+用户保存token到本地
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+``` 
+localStorage.setItem(key, value)
+localStorage.removeItem(key)
+```
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+### jsonwebtoken 
 
-## Learn More
+jwt鉴权工具
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+安装:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+    npm install --save jsonwebtoken
 
-### Code Splitting
+``` 
+// 签发token
+const jwt = require('jsonwebtoken')
+const secret = 'abcdeft_123465'
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
+const token = jwt.sign({
+    id: 1
+    username: 'mystic'
+}, secret)
+```
 
-### Analyzing the Bundle Size
+### jwt-decode
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
+安装:
 
-### Making a Progressive Web App
+    npm install --save jwt-decode
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
+作用: jwt解码工具
+参数: 传入token, 会将原来加密的对象解码出来出一个对象
 
-### Advanced Configuration
+``` 
+const jwtDecode = require('jwt-decode)
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
+jwtDecode(token)
+```
 
-### Deployment
+### 高阶组件处理组件切换前登录状态判断
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
+``` 
+// ComposeComponent.jsx文件
+import React from 'react'
+import { withRouter } from 'react-router-dom'
+import { connect } from 'react-redux'
+import { addFlashMessage } from '../../store/actions/flashMessage'
 
-### `yarn build` fails to minify
+const ComposeComponent = (Component) => {
+    class InnerComponent extends React.Component {
+        state = {
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+        }
+
+        componentWillMount() {
+            if (!this.props.isAuthenticated) {
+                this.props.addFlashMessage({
+                    type: 'danger',
+                    text: '请先登录'
+                })
+                this.props.history.push('/signup')
+                return false
+            }
+            return true
+        }
+
+        componentWillUpdate(nextProps) {
+            if (!nextProps.isAuthenticated) {
+                this.props.history.push('/signup')
+            }
+        }
+
+        render() {
+            return <Component {...this.state}></Component>
+        }
+    }
+
+    const mapStateToProps = (state) => {
+        return {
+            isAuthenticated: state.auth.isAuthenticated
+        }
+    }
+
+    return withRouter(connect(mapStateToProps, { addFlashMessage })(InnerComponent))
+}
+
+export default ComposeComponent
+
+
+// routes.js文件
+import React from 'react'
+import { Route } from 'react-router-dom'
+import SignIn from '../pages/login/SignIn'
+import SignUp from '../pages/login/SignUp'
+import Home from '../components/Home'
+import Shop from '../components/shop/ShopPage'
+import ComposeComponent from '../components/baseComponent/ComposeComponent'
+
+export default (
+    <div>
+        <Route exact path="/" component={Home}></Route>
+        <Route exact path="/signin" component={SignIn}></Route>
+        <Route exact path="/signup" component={SignUp}></Route>
+        <Route exact path="/shop" component={ComposeComponent(Shop)}></Route>
+    </div>
+)
+```
